@@ -42,6 +42,7 @@ export default defineConfig(({ mode }) => {
       MAX_EXPIRATION: JSON.stringify(getVar("MAX_EXPIRATION")),
       DEFAULT_EXPIRATION: JSON.stringify(getVar("DEFAULT_EXPIRATION")),
       INDEX_PAGE_TITLE: JSON.stringify(indexTitle),
+      DEFAULT_CLIENT_ENCRYPTION: getVar("DEFAULT_CLIENT_ENCRYPTION"),
     },
     server: {
       port: 5173,
