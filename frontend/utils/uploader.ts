@@ -28,8 +28,14 @@ export async function uploadPaste(
         throw new ErrorWithTitle("Error on Preparing Upload", "No file selected")
       }
       if (pasteSetting.doEncrypt) {
-        const { key, ciphertext } = await genAndEncrypt(encryptionScheme, await editorState.file.bytes())
-        const file = new File([ciphertext], editorState.file.name)
+  // In browsers, File/Blob doesn't have .bytes(); use arrayBuffer() then wrap as Uint8Array
+  const fileBuf = new Uint8Array(await editorState.file.arrayBuffer())
+  const { key, ciphertext } = await genAndEncrypt(encryptionScheme, fileBuf)
+  // Ensure BlobPart is a plain ArrayBuffer, not a Uint8Array<ArrayBufferLike>
+  const ab = new ArrayBuffer(ciphertext.byteLength)
+  new Uint8Array(ab).set(ciphertext)
+  const blob = new Blob([ab])
+  const file = new File([blob], editorState.file.name)
         onEncryptionKeyChange(key)
         return file
       } else {
@@ -41,9 +47,12 @@ export async function uploadPaste(
         throw new ErrorWithTitle("Error on Preparing Upload", "Empty paste")
       }
       if (pasteSetting.doEncrypt) {
-        const { key, ciphertext } = await genAndEncrypt(encryptionScheme, editorState.editContent)
+  const { key, ciphertext } = await genAndEncrypt(encryptionScheme, editorState.editContent)
         onEncryptionKeyChange(key)
-        return new File([ciphertext], editorState.editFilename || "")
+  const ab = new ArrayBuffer(ciphertext.byteLength)
+  new Uint8Array(ab).set(ciphertext)
+  const blob = new Blob([ab])
+  return new File([blob], editorState.editFilename || "")
       } else {
         onEncryptionKeyChange(undefined)
         return new File([editorState.editContent], editorState.editFilename || "")
