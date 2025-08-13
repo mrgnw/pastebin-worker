@@ -68,16 +68,21 @@ export function DisplayPaste() {
           filenameFromDisp = filenameFromDisp.replace(/.encrypted$/, "")
         }
 
-        const lang = url.searchParams.get("lang") || resp.headers.get("X-PB-Highlight-Language")
+  const lang = url.searchParams.get("lang") || resp.headers.get("X-PB-Highlight-Language")
 
-        const inferredFilename = filename || (ext && name + ext) || filenameFromDisp
-        const respBytes = await resp.bytes()
-        setPasteLang(lang || undefined)
+  const inferredFilename = filename || (ext && name + ext) || filenameFromDisp
+  // Response in browsers doesn't have .bytes(); use arrayBuffer and Uint8Array as needed
+  const respBufOrig = await resp.arrayBuffer()
+  // Copy into a fresh ArrayBuffer to avoid ArrayBufferLike typing issues
+  const respBuf = new ArrayBuffer(respBufOrig.byteLength)
+  new Uint8Array(respBuf).set(new Uint8Array(respBufOrig))
+  const respBytes = new Uint8Array(respBuf)
+  setPasteLang(lang || undefined)
 
         const keyString = url.hash.slice(1)
         if (scheme === null || keyString.length === 0) {
-          setPasteFile(new File([respBytes], inferredFilename || name))
-          setPasteContentBuffer(respBytes)
+          setPasteFile(new File([respBuf], inferredFilename || name))
+          setPasteContentBuffer(respBuf)
           if (scheme) {
             setDecrypted("encrypted")
             setFileBinary(true)
@@ -105,8 +110,11 @@ export function DisplayPaste() {
             return
           }
 
-          setPasteFile(new File([decrypted], inferredFilename || name))
-          setPasteContentBuffer(decrypted)
+          // Convert Uint8Array to fresh ArrayBuffer to satisfy typing for File and state
+          const decryptedBuf = new ArrayBuffer(decrypted.byteLength)
+          new Uint8Array(decryptedBuf).set(decrypted)
+          setPasteFile(new File([decryptedBuf], inferredFilename || name))
+          setPasteContentBuffer(decryptedBuf)
           setPasteLang(lang || undefined)
 
           const encoding = chardet.detect(decrypted)
